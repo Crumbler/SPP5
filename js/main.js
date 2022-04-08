@@ -11,11 +11,7 @@ let statuses, tasks, currentTask,
 let addingTask = false;
 
 let currentFileData;
-
-let socket = io({
-    reconnection: false,
-    autoConnect: false
-});
+let socket;
 
 
 window.onload = onWindowLoad;
@@ -31,13 +27,17 @@ $('#task-file').change(onFileUpload);
 
 function onWindowLoad() {
     clearTasks();
-    
-    promptLogin();
 
-    socket.on('connect', onConnect);
-    socket.on('connect_error', onConnectError);
+    openSocket();
+}
 
-    socket.connect();
+
+function openSocket() {
+    socket = new WebSocket('ws://127.0.0.1/');
+
+    socket.onopen = onSocketConnect;
+    socket.onerror = onSocketError;
+    socket.onclose = onSocketClose;
 }
 
 
@@ -72,21 +72,33 @@ function emitAsync(...args) {
 }
 
 
-async function onConnect() {
+async function onSocketConnect() {
     console.log('Connected');
 
     clearTasks();
 
     hideModalLogin();
 
-    await getStatuses();
-    getTasks()
+    //await getStatuses();
+    //getTasks()
 }
 
 
-function onConnectError(err) {
+function onSocketClose(event) {
+    if (event.wasClean) {
+        console.log('Socket closed cleanly');
+    } else {
+        console.log('Socket connection cut off');
+    }
+
+    console.log(`Code: ${event.code}, reason: ${event.reason}`);
+}
+
+
+function onSocketError(err) {
     promptLogin();
-    console.log('Connect error: ' + err.message);
+
+    console.log('Socket error: ' + err.message);
 }
 
 
@@ -244,7 +256,7 @@ async function LogSign(urlpath, formData) {
     });
 
     if (response.ok) {
-        socket.connect();
+        openSocket();
     }
     else {
         resetModalLoginForm();

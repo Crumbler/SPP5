@@ -21,12 +21,16 @@ const jwtExpirySeconds = 300;
 
 let statuses;
 
+
 function loadStatuses() {
   statuses = JSON.parse(fs.readFileSync('taskStatuses.json'));
 }
 
 
 loadStatuses();
+
+
+server.on('upgrade', onUpgrade);
 
 
 app.use('/', express.static('html'));
@@ -49,8 +53,11 @@ app.use(checkAuth);
 
 
 const wsServer = new WebSocketServer({
-  port: wsPort
+  noServer: true
 });
+
+
+wsServer.on('connection', onConnection);
 
 
 useServer({ }, wsServer);
@@ -86,9 +93,6 @@ function checkHandshake(req, callback) {
 
   callback(null, true);
 }
-
-
-//io.on('connection', onConnection);
 
 
 function onSignup(req, res) {
@@ -187,6 +191,56 @@ function checkAuth(req, res, next) {
 	}
 
   next();
+}
+
+
+function onUpgrade(req, socket, head) {
+  if (!req.headers.cookie) {
+    console.log('Upgrade rejected due to lack of token');
+
+    socket.end();
+    socket.destroy();
+
+    return;
+  }
+
+  const cookies = cookie.parse(req.headers.cookie);
+
+  const token = cookies.token;
+
+  if (!token) {
+    console.log('Upgrade rejected due to lack of token');
+    
+    socket.end();
+    socket.destroy();
+
+    return;
+  }
+
+  try {
+		jwt.verify(token, jwtKey);
+	} catch (err) {
+		if (err instanceof jwt.JsonWebTokenError) {
+			// Unauthorized JWT
+      console.log('Unauthorized JWT');
+
+      socket.end();
+      socket.destroy();
+
+			return;
+		}
+		// Otherwise, bad request
+    console.log('Bad request');
+
+    socket.end();
+    socket.destroy();
+
+		return;
+	}
+
+  wsServer.handleUpgrade(req, socket, head, socket => {
+    console.log('Successful upgrade');
+  });
 }
 
 
