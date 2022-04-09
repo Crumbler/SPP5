@@ -6,21 +6,18 @@ const { path, use } = require('express/lib/application');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const cookie = require('cookie');
+const { Server } = require('socket.io');
 const app = express();
 const http = require('http');
-const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require('graphql');
-const { WebSocketServer } = require('ws');
-const { useServer } = require('graphql-ws/lib/use/ws');
-
 const server = http.createServer(app);
+let io;
 const bcrypt = require('bcrypt');
 
-const port = 80, wsPort = 4000;
+const port = 80;
 const jwtKey = 'mysecretkey';
 const jwtExpirySeconds = 300;
 
 let statuses;
-
 
 function loadStatuses() {
   statuses = JSON.parse(fs.readFileSync('taskStatuses.json'));
@@ -30,14 +27,15 @@ function loadStatuses() {
 loadStatuses();
 
 
-server.on('upgrade', onUpgrade);
-
-
 app.use('/', express.static('html'));
 app.use('/', express.static('css'));
 app.use('/', express.static('js'));
 app.use('/', express.static('svg'));
 
+
+app.get('/socket.io.js', (req, res) => {
+  res.sendFile(__dirname + '/node_modules/socket.io/client-dist/socket.io.js');
+});
 
 app.get('/FileSaver.js', (req, res) => {
   res.sendFile(__dirname + '/node_modules/file-saver/dist/FileSaver.min.js');
@@ -51,16 +49,10 @@ app.post('/login', upload.none(), onLogin);
 
 app.use(checkAuth);
 
-
-const wsServer = new WebSocketServer({
-  noServer: true
+io = new Server(server, {
+  allowRequest: checkHandshake,
+  maxHttpBufferSize: 10e6 // 10 MB
 });
-
-
-wsServer.on('connection', onConnection);
-
-
-useServer({ }, wsServer);
 
 
 function checkHandshake(req, callback) {
@@ -93,6 +85,9 @@ function checkHandshake(req, callback) {
 
   callback(null, true);
 }
+
+
+io.on('connection', onConnection);
 
 
 function onSignup(req, res) {
@@ -191,56 +186,6 @@ function checkAuth(req, res, next) {
 	}
 
   next();
-}
-
-
-function onUpgrade(req, socket, head) {
-  if (!req.headers.cookie) {
-    console.log('Upgrade rejected due to lack of token');
-
-    socket.end();
-    socket.destroy();
-
-    return;
-  }
-
-  const cookies = cookie.parse(req.headers.cookie);
-
-  const token = cookies.token;
-
-  if (!token) {
-    console.log('Upgrade rejected due to lack of token');
-    
-    socket.end();
-    socket.destroy();
-
-    return;
-  }
-
-  try {
-		jwt.verify(token, jwtKey);
-	} catch (err) {
-		if (err instanceof jwt.JsonWebTokenError) {
-			// Unauthorized JWT
-      console.log('Unauthorized JWT');
-
-      socket.end();
-      socket.destroy();
-
-			return;
-		}
-		// Otherwise, bad request
-    console.log('Bad request');
-
-    socket.end();
-    socket.destroy();
-
-		return;
-	}
-
-  wsServer.handleUpgrade(req, socket, head, socket => {
-    console.log('Successful upgrade');
-  });
 }
 
 
