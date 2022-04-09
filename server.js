@@ -216,18 +216,6 @@ function onError(err) {
 }
 
 
-function onGetTaskFile(taskId, callback) {
-  const rawTasks = fs.readFileSync('tasks.json');
-  const tasks = JSON.parse(rawTasks);
-
-  const task = tasks.find(t => t.id === taskId);
-
-  const rawFile = fs.readFileSync(`Task files/${taskId}.bin`);
-
-  callback(rawFile);
-}
-
-
 function onTaskAdd(receivedTask, file, callback) {
   const rawTasks = fs.readFileSync('tasks.json');
   const tasks = JSON.parse(rawTasks);

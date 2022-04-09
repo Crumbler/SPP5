@@ -39,6 +39,13 @@ const queryType = new GraphQLObjectType({
         filter: { type: GraphQLInt }
       },
       resolve: onGetTasks
+    },
+    taskFile: {
+      type: GraphQLString,
+      args: {
+        id: { type: GraphQLInt }
+      },
+      resolve: onGetTaskFile
     }
   }
 });
@@ -54,6 +61,13 @@ const mutationType = new GraphQLObjectType({
         file: { type: GraphQLString }
       },
       resolve: onUpdateTask
+    },
+    addTask: {
+      type: GraphQLInt,
+      args: {
+        receivedTask: { type: GraphQLString },
+        file: { type: GraphQLString }
+      }
     }
   }
 });
@@ -135,6 +149,20 @@ function onUpdateTask(_, { receivedTask, file }) {
   fs.writeFileSync('tasks.json', writeData);
 
   return null;
+}
+
+
+function onGetTaskFile(_, { id }) {
+  const taskId = id;
+
+  const rawTasks = fs.readFileSync('tasks.json');
+  const tasks = JSON.parse(rawTasks);
+
+  const task = tasks.find(t => t.id === taskId);
+
+  const rawFile = fs.readFileSync(`Task files/${taskId}.bin`);
+
+  return rawFile.toString('base64url');
 }
 
 

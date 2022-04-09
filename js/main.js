@@ -207,9 +207,12 @@ function createTaskElement(task) {
 async function onFileClick() {
     const task = this.parentNode.parentNode.task;
 
-    const file = await emitAsync('file', task.id);
+    const fileString = 'data:application/octet-stream;base64,' + 
+    (await emitAsync('graphql', `{ taskFile(id: ${task.id}) }`)).taskFile;
 
-    const fileBlob = new Blob([file]);
+    const fetchRes = await fetch(fileString);
+
+    const fileBlob = await fetchRes.blob();
 
     saveAs(fileBlob, task.file);
 }
