@@ -10,7 +10,7 @@ let statuses, tasks, currentTask,
 
 let addingTask = false;
 
-let currentFileData;
+let currentFileData = null;
 
 let socket = io({
     reconnection: false,
@@ -388,15 +388,15 @@ async function addTask(formData) {
 }
 
 
-function updateTask(formData) {
+async function updateTask(formData) {
     currentTask.title = formData.get('name');
     currentTask.statusId = Number(formData.get('statusid'));
     currentTask.completionDate = formData.get('date');
 
     const taskFileObj = formData.get('file');
+    let fileToSend = currentFileData;
 
     currentTask.file = taskFileObj.name;
-    let fileToSend = currentFileData;
 
     if (!currentTask.completionDate) {
         currentTask.completionDate = null;
@@ -407,7 +407,15 @@ function updateTask(formData) {
         fileToSend = null;
     }
 
-    socket.emit('update', currentTask, fileToSend);
+    let taskJson = JSON.stringify(currentTask);
+
+    taskJson = taskJson.replace(/"/g, 'zxc');
+
+    socket.emit('graphql', `
+    mutation {
+        updateTask(receivedTask: "${taskJson}", file: ${fileToSend})
+    }
+    `);
 
     currentTaskElement.firstChild.innerHTML = getTaskHTML(currentTask);
 

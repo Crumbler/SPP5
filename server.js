@@ -13,7 +13,7 @@ const server = http.createServer(app);
 let io;
 const bcrypt = require('bcrypt');
 const { graphql } = require('graphql');
-const { schema, roots } = require('./schema');
+const { schema } = require('./schema');
 
 const port = 80;
 const jwtKey = 'mysecretkey';
@@ -196,13 +196,16 @@ function onConnection(socket) {
 
 
 async function onQuery(req, callback) {
+  console.log('Received query ' + req);
+
   const res = await graphql({
     schema,
-    source: req,
-    rootValue: roots
+    source: req
   });
 
-  callback(res.data);
+  if (callback) {
+    callback(res.data);
+  }
 }
 
 
@@ -222,50 +225,6 @@ function onGetTaskFile(taskId, callback) {
   const rawFile = fs.readFileSync(`Task files/${taskId}.bin`);
 
   callback(rawFile);
-}
-
-
-function onUpdateTask(receivedTask, file) {
-  const rawTasks = fs.readFileSync('tasks.json');
-  const tasks = JSON.parse(rawTasks);
-
-  console.log('Received task ' + receivedTask.title);
-  
-  const taskId = receivedTask.id;
-  
-  const task = tasks.find(t => t.id === taskId);
-
-  if (receivedTask.title != null) {
-    task.title = receivedTask.title;
-  }
-
-  if (receivedTask.statusid != null) {
-    task.statusId = receivedTask.statusid;
-  }
-
-  if (receivedTask.date) {
-    task.completionDate = receivedTask.date;
-  }
-  else {
-    task.completionDate = null;
-  }
-
-  if (file != null) {
-    fs.writeFileSync(`Task files/${taskId}.bin`, file);
-    task.file = receivedTask.file;
-  }
-  else {
-    try {
-      fs.unlinkSync(`Task files/${taskId}.bin`);
-    } catch(err) {
-      // file didn't exist
-    }
-
-    task.file = null;
-  }
-  
-  const writeData = JSON.stringify(tasks, null, 2);
-  fs.writeFileSync('tasks.json', writeData);
 }
 
 

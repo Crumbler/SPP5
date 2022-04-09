@@ -1,5 +1,6 @@
 
-const { buildSchema } = require('graphql');
+const { buildSchema, GraphQLSchema, GraphQLInt, GraphQLObjectType, 
+        GraphQLString, GraphQLList, GraphQLInputObjectType } = require('graphql');
 const fs = require('fs');
 
 
@@ -12,26 +13,57 @@ function loadStatuses() {
 loadStatuses();
 
 
-const schema = buildSchema(`
-  type Task {
-    title: String!
-    id: Int!
-    statusId: Int!
-    completionDate: String
-    file: String
+const taskType = new GraphQLObjectType({
+  name: 'Task',
+  fields: {
+    title: { type: GraphQLString },
+    id: { type: GraphQLInt },
+    statusId: { type: GraphQLInt },
+    completionDate: { type: GraphQLString },
+    file: { type: GraphQLString }
   }
+});
 
-  type Query {
-    statuses: [String!]!
-    tasks(filter: Int): [Task!]!
+
+const queryType = new GraphQLObjectType({
+  name: 'Query',
+  fields: {
+    statuses: {
+      type: new GraphQLList(GraphQLString),
+      resolve: onGetStatuses
+    },
+    tasks: {
+      type: new GraphQLList(taskType),
+      args: {
+        filter: { type: GraphQLInt }
+      },
+      resolve: onGetTasks
+    }
   }
-`);
+});
 
 
-const roots = { 
-  statuses: onGetStatuses,
-  tasks: onGetTasks
-};
+const mutationType = new GraphQLObjectType({
+  name: 'Mutation',
+  fields: {
+    updateTask: {
+      type: GraphQLInt,
+      args: {
+        receivedTask: { type: GraphQLString },
+        file: { type: GraphQLString }
+      },
+      resolve: onUpdateTask
+    }
+  }
+});
+
+
+schema = new GraphQLSchema({
+  query: queryType,
+  mutation: mutationType
+});
+
+
 
 
 function onGetStatuses() {
@@ -39,7 +71,7 @@ function onGetStatuses() {
 }
 
 
-function onGetTasks({ filter }) {
+function onGetTasks(_, { filter }) {
   const rawTasks = fs.readFileSync('tasks.json');
   let tasks = JSON.parse(rawTasks);
 
@@ -53,7 +85,57 @@ function onGetTasks({ filter }) {
 }
 
 
+function onUpdateTask(_, { receivedTask, file }) {
+  const rawTasks = fs.readFileSync('tasks.json');
+  const tasks = JSON.parse(rawTasks);
+
+  receivedTask = receivedTask.replace(/zxc/g, '"');
+
+  receivedTask = JSON.parse(receivedTask);
+
+
+  file = null;
+  
+  const taskId = receivedTask.id;
+  
+  const task = tasks.find(t => t.id === taskId);
+
+  if (receivedTask.title != null) {
+    task.title = receivedTask.title;
+  }
+
+  if (receivedTask.statusId != null) {
+    task.statusId = receivedTask.statusId;
+  }
+
+  if (receivedTask.completionDate) {
+    task.completionDate = receivedTask.completionDate;
+  }
+  else {
+    task.completionDate = null;
+  }
+
+  if (file != null) {
+    fs.writeFileSync(`Task files/${taskId}.bin`, file);
+    task.file = receivedTask.file;
+  }
+  else {
+    try {
+      fs.unlinkSync(`Task files/${taskId}.bin`);
+    } catch(err) {
+      // file didn't exist
+    }
+
+    task.file = null;
+  }
+  
+  const writeData = JSON.stringify(tasks, null, 2);
+  fs.writeFileSync('tasks.json', writeData);
+
+  return null;
+}
+
+
 module.exports = { 
-  schema, 
-  roots
+  schema
 };
