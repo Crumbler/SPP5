@@ -1,16 +1,34 @@
 
 const { buildSchema } = require('graphql');
+const fs = require('fs');
+
+
+let statuses;
+
+function loadStatuses() {
+  statuses = JSON.parse(fs.readFileSync('taskStatuses.json'));
+}
+
+
+loadStatuses();
 
 
 const schema = buildSchema(`
   type Query {
-    hello: String
+    statuses: [String]
   }
 `);
 
+
 const roots = { 
-  hello: () => 'Hello world!' 
+  statuses: onGetStatuses
 };
+
+
+function onGetStatuses() {
+  return statuses;
+}
+
 
 module.exports = { 
   schema, 

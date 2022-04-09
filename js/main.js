@@ -77,12 +77,8 @@ async function onConnect() {
 
     hideModalLogin();
 
-    //await getStatuses();
+    await getStatuses();
     //getTasks();
-
-    const res = await emitAsync('graphql', '{ hello }');
-    
-    console.log(res);
 }
 
 
@@ -98,7 +94,7 @@ async function getStatuses() {
         return;
     }
 
-    statuses = await emitAsync('statuses');
+    statuses = (await emitAsync('graphql', '{ statuses }')).statuses;
 
     let statusOptions = statuses.map(createStatusOption);
 

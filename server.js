@@ -19,15 +19,6 @@ const port = 80;
 const jwtKey = 'mysecretkey';
 const jwtExpirySeconds = 300;
 
-let statuses;
-
-function loadStatuses() {
-  statuses = JSON.parse(fs.readFileSync('taskStatuses.json'));
-}
-
-
-loadStatuses();
-
 
 app.use('/', express.static('html'));
 app.use('/', express.static('css'));
@@ -212,11 +203,6 @@ async function onQuery(req, callback) {
   });
 
   callback(res.data);
-}
-
-
-function onGetStatuses(callback) {
-  callback(statuses);
 }
 
 
