@@ -2,6 +2,7 @@
 const { buildSchema, GraphQLSchema, GraphQLInt, GraphQLObjectType, 
         GraphQLString, GraphQLList, GraphQLInputObjectType } = require('graphql');
 const fs = require('fs');
+const { Buffer } = require('buffer');
 
 
 let statuses;
@@ -65,7 +66,6 @@ schema = new GraphQLSchema({
 
 
 
-
 function onGetStatuses() {
   return statuses;
 }
@@ -92,9 +92,6 @@ function onUpdateTask(_, { receivedTask, file }) {
   receivedTask = receivedTask.replace(/zxc/g, '"');
 
   receivedTask = JSON.parse(receivedTask);
-
-
-  file = null;
   
   const taskId = receivedTask.id;
   
@@ -115,8 +112,13 @@ function onUpdateTask(_, { receivedTask, file }) {
     task.completionDate = null;
   }
 
-  if (file != null) {
-    fs.writeFileSync(`Task files/${taskId}.bin`, file);
+  if (receivedTask.file != null) {
+    file = file.split(',')[1];
+
+    const buff = Buffer.from(file, 'base64url');
+
+    fs.writeFileSync(`Task files/${taskId}.bin`, buff);
+
     task.file = receivedTask.file;
   }
   else {

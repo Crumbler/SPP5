@@ -46,7 +46,7 @@ function onFileUpload(event) {
 
     let reader = new FileReader();
 
-    reader.readAsArrayBuffer(file);
+    reader.readAsDataURL(file);
 
     reader.onload = () => {
         currentFileData = reader.result;
@@ -394,7 +394,7 @@ async function updateTask(formData) {
     currentTask.completionDate = formData.get('date');
 
     const taskFileObj = formData.get('file');
-    let fileToSend = currentFileData;
+    let fileToSend = '"' + currentFileData + '"';
 
     currentTask.file = taskFileObj.name;
 
