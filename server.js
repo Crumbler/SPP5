@@ -12,6 +12,8 @@ const http = require('http');
 const server = http.createServer(app);
 let io;
 const bcrypt = require('bcrypt');
+const { graphql } = require('graphql');
+const { schema, roots } = require('./schema');
 
 const port = 80;
 const jwtKey = 'mysecretkey';
@@ -196,19 +198,20 @@ function onConnection(socket) {
     console.log('User disconnected');
   });
 
-  socket.on('statuses', onGetStatuses);
-
-  socket.on('tasks', onGetTasks);
-
-  socket.on('update', onUpdateTask);
-
-  socket.on('file', onGetTaskFile);
-
-  socket.on('add', onTaskAdd);
-
-  socket.on('delete', onTaskDelete);
+  socket.on('graphql', onQuery);
 
   socket.on('error', onError);
+}
+
+
+async function onQuery(req, callback) {
+  const res = await graphql({
+    schema,
+    source: req,
+    rootValue: roots
+  });
+
+  callback(res.data);
 }
 
 
