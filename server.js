@@ -216,60 +216,6 @@ function onError(err) {
 }
 
 
-function onTaskAdd(receivedTask, file, callback) {
-  const rawTasks = fs.readFileSync('tasks.json');
-  const tasks = JSON.parse(rawTasks);
-  
-  const taskId = tasks[tasks.length - 1].id + 1;
-  
-  const task = { 
-    id: taskId,
-    title: receivedTask.title ?? 'New task',
-    statusId: Number(receivedTask.statusid ?? '0'),
-    completionDate: receivedTask.completionDate
-  };
-
-  if (!receivedTask.date) {
-    task.completionDate = null;
-  }
-
-  if (file) {
-    fs.writeFileSync(`Task files/${taskId}.bin`, file);
-    task.file = receivedTask.file;
-  }
-  else {
-    task.file = null;
-  }
-
-  tasks.push(task);
-
-  const writeData = JSON.stringify(tasks, null, 2);
-  fs.writeFileSync('tasks.json', writeData);
-
-  callback(taskId);
-}
-
-
-function onTaskDelete(taskId) {
-  const rawTasks = fs.readFileSync('tasks.json');
-  let tasks = JSON.parse(rawTasks);
-
-  const taskInd = tasks.findIndex(task => task.id === taskId);
-  
-  tasks.splice(taskInd, 1);
-  tasks = tasks.filter(e => e != null);
-
-  try {
-    fs.unlinkSync(`Task files/${taskId}.bin`);
-  } catch(err) {
-    // file didn't exist
-  }
-
-  const writeData = JSON.stringify(tasks, null, 2);
-  fs.writeFileSync('tasks.json', writeData);
-}
-
-
 server.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });

@@ -316,7 +316,7 @@ async function onDeleteClick(event) {
 
     currentTask = currentTaskElement.task;
 
-    socket.emit('delete', currentTask.id);
+    socket.emit('graphql', `mutation { deleteTask(id: ${currentTask.id}) }`);
     
     const taskInd = tasks.findIndex(task => task === currentTask);
     tasks.splice(taskInd, 1);
@@ -363,7 +363,7 @@ async function addTask(formData) {
 
     const taskFile = formData.get('file');
     
-    let taskFileData = currentFileData;
+    let taskFileData = '"' + currentFileData + '"';
     task.file = taskFile.name;
 
     if (!task.completionDate) {
@@ -375,7 +375,17 @@ async function addTask(formData) {
         taskFileData = null;
     }
 
-    const taskId = await emitAsync('add', task, taskFileData);
+    console.log('Adding task ' + task);
+
+    let taskJson = JSON.stringify(task);
+
+    taskJson = taskJson.replace(/"/g, 'zxc');
+
+    const taskId = (await emitAsync('graphql', `
+    mutation {
+        addTask(receivedTask: "${taskJson}", file: ${taskFileData})
+    }
+    `)).addTask;
 
     task.id = taskId;
 
