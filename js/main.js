@@ -78,7 +78,7 @@ async function onConnect() {
     hideModalLogin();
 
     await getStatuses();
-    //getTasks();
+    getTasks();
 }
 
 
@@ -129,7 +129,19 @@ async function getTasks(status) {
         return;
     }
 
-    tasks = await emitAsync('tasks', status);
+    if (status == null) {
+        status = null;
+    }
+
+    tasks = (await emitAsync('graphql', `{
+        tasks(filter: ${status}) {
+            title,
+            id,
+            statusId,
+            completionDate,
+            file
+        }
+    }`)).tasks;
 
     const taskElements = tasks.map(task => createTaskElement(task));
 

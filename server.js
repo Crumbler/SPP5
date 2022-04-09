@@ -206,19 +206,6 @@ async function onQuery(req, callback) {
 }
 
 
-function onGetTasks(filter, callback) {
-  const rawTasks = fs.readFileSync('tasks.json');
-  let tasks = JSON.parse(rawTasks);
-
-  if (filter != null)
-  {
-    filter = Number(filter);
-    tasks = tasks.filter(task => task.statusId === filter);
-  }
-
-  callback(tasks);
-}
-
 function onError(err) {
   if (err) {
     console.log('Error: ' + err);
